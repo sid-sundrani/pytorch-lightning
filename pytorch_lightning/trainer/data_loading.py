@@ -16,14 +16,14 @@ import multiprocessing
 import platform
 from abc import ABC
 from copy import deepcopy
-from typing import Callable, Iterable, List, Optional, Tuple, Union
+from typing import Union, List, Tuple, Callable, Optional, Iterable
 
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, TPU_AVAILABLE, HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -35,12 +35,8 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
-try:
+if HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
 
 class TrainerDataLoadingMixin(ABC):
