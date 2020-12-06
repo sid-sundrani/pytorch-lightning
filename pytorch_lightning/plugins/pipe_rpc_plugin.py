@@ -168,11 +168,11 @@ class PipeRPCPlugin(RPCPlugin):
         automatic_optimization = trainer.train_loop.automatic_optimization
         if automatic_optimization:
             raise MisconfigurationException(
-                'PipePlugin is currently not supported in automatic optimization')
+                'PipeRPCPlugin is currently not supported in automatic optimization')
 
         if trainer.amp_backend is not None:
             raise MisconfigurationException(
-                'PipePlugin is currently not supported in Automatic Mixed Precision')
+                'PipeRPCPlugin is currently not supported in Automatic Mixed Precision')
 
     def on_after_setup_optimizers(self, trainer):
         self._optimizers_map = {opt_idx: False for opt_idx, opt in enumerate(trainer.optimizers)}

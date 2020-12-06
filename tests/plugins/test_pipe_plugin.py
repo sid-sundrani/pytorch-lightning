@@ -150,7 +150,7 @@ def test_pipe_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
         assert len(trainer.dev_debugger.pbar_added_metrics) > 0
 
     except MisconfigurationException as e:
-        assert str(e) == 'PipePlugin is currently not supported in Automatic Mixed Precision'
+        assert str(e) == 'PipeRPCPlugin is currently not supported in Automatic Mixed Precision'
 
     del model
 
@@ -228,7 +228,7 @@ def test_pipe_plugin_ddp_rpc_automatic(tmpdir, args=None):
         model.foreach_worker(cleanup, include_self=True)
 
     except MisconfigurationException as e:
-        assert str(e) == 'PipePlugin is currently not supported in automatic optimization'
+        assert str(e) == 'PipeRPCPlugin is currently not supported in automatic optimization'
 
     del model
 
