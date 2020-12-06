@@ -23,6 +23,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only, sync_ddp_if_available
 
@@ -135,6 +136,12 @@ class DDPHPCAccelerator(Accelerator):
             self.trainer.world_size,
             self.trainer.is_slurm_managing_tasks
         )
+
+        if isinstance(self.ddp_plugin, RPCPlugin):
+            if self.ddp_plugin.should_exit_rpc_process(self.trainer.global_rank):
+                self.ddp_plugin.on_exit_rpc_process(self.trainer)
+                return
+            self.ddp_plugin.on_main_rpc_connection(self.trainer)
 
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)
