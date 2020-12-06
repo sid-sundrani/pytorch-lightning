@@ -86,7 +86,7 @@ class DDPPlugin(LightningPlugin):
         )
         return model
 
-    def init_ddp_connection(
+    def init_distributed_connection(
             self,
             trainer,
             cluster_environment,
@@ -124,6 +124,13 @@ class DDPPlugin(LightningPlugin):
         Returns: args moved to correct device if needed.
         """
         return args
+
+    def on_after_setup_optimizers(self, trainer):
+        """
+        Called after optimizers have been set-up. This is useful for doing any configuration options in RPC, or
+        state sharding.
+        """
+        pass
 
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         return optimizer.state_dict()

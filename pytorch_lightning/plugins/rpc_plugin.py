@@ -11,8 +11,41 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+
+from torch.distributed import rpc
+
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 
 
 class RPCPlugin(DDPPlugin):
-    pass
+
+    def init_rpc_connection(self,
+                            global_rank: int,
+                            world_size: int):
+        os.environ['MASTER_PORT'] = os.getenv('RPC_MASTER_PORT', '15000')
+        rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
+
+    def rpc_save_model(self,
+                       save_model_fn,
+                       last_filepath,
+                       trainer,
+                       pl_module):
+        raise NotImplementedError
+
+    def on_main_rpc_connection(self, trainer):
+        raise NotImplementedError
+
+    def should_exit_rpc_process(self, global_rank):
+        raise NotImplementedError
+
+    def on_exit_rpc_process(self, trainer):
+        raise NotImplementedError
+
+    def optimizer_step(self,
+                       is_master,
+                       lightning_optimizer,
+                       closure,
+                       *args,
+                       **kwargs):
+        raise NotImplementedError

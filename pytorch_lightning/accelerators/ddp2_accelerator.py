@@ -137,7 +137,7 @@ class DDP2Accelerator(Accelerator):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         model.trainer = self.trainer
-        self.init_ddp_connection(
+        self.init_distributed_connection(
             self.trainer.global_rank,
             self.trainer.world_size,
             self.trainer.is_slurm_managing_tasks
@@ -163,6 +163,8 @@ class DDP2Accelerator(Accelerator):
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.setup_optimizers(model)
+
+        self.ddp_plugin.on_after_setup_optimizers(self.trainer)
 
         # set model properties before going into wrapper
         self.trainer.model_connector.copy_trainer_model_properties(model)

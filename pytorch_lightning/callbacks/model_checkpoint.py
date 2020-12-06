@@ -552,8 +552,8 @@ class ModelCheckpoint(Callback):
 
         ddp_plugin = accelerator_backend.ddp_plugin if accelerator_backend is not None else None
         if ddp_plugin is not None and isinstance(ddp_plugin, RPCPlugin):
-            # PipeRpcPlugin needs to handle the logic for saving the model
-            ddp_plugin._save_model(self._save_model, last_filepath, trainer, pl_module)
+            # RPCPlugin manages saving all model states
+            ddp_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)
         else:
             self._save_model(last_filepath, trainer, pl_module)
         if (
