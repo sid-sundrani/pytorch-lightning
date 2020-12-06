@@ -96,7 +96,6 @@ class LightningOptimizer:
             if not accelerator_backend.ddp_plugin.is_main_rpc_process:
                 return
             accelerator_backend.ddp_plugin.optimizer_step(
-                is_master_rpc_process=trainer.is_master_rpc_process,
                 model=model,
                 lightning_optimizer=self,
                 closure=closure,

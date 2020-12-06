@@ -191,7 +191,7 @@ class PipeRPCPlugin(RPCPlugin):
     def _optimizer_step(self, model, opt_idx, *args, **kwargs):
         model.foreach_worker(run_optimizer, {"opt_idx": opt_idx}, include_self=False)
 
-    def optimizer_step(self, is_master_rpc_process, model, optimizer, closure, *args, **kwargs):
+    def optimizer_step(self, model, optimizer, closure, *args, **kwargs):
         opt_idx = optimizer._optimizer_idx
         self._optimizers_map[opt_idx] = not self._optimizers_map[opt_idx]
 
