@@ -145,7 +145,7 @@ class PipeRPCPlugin(RPCPlugin):
     def on_exit_rpc_process(self, trainer):
         # For RPC, all ranks other than 0 just need to call rpc.shutdown()
         torch_distrib.barrier()
-        rpc_pipe.PipeModel.trainer = trainer.model
+        rpc_pipe.PipeModel.trainer = trainer
         rpc_pipe.PipeModel.configure_optimizers = trainer.model.configure_optimizers
         torch.distributed.rpc.shutdown()
 
