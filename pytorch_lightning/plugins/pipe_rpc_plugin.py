@@ -79,7 +79,7 @@ class PipeRPCPlugin(RPCPlugin):
                 if self.balance is None:
                     self.balance = self._infer_model_balance(trainer)
                 self._assert_valid_model_balance(trainer)
-        self.set_main_rpc_process(trainer.global_rank)
+        self.set_main_rpc_process()
 
     def _infer_model_balance(self, trainer):
         model = trainer.get_model()
@@ -144,21 +144,19 @@ class PipeRPCPlugin(RPCPlugin):
 
     def on_exit_rpc_process(self, trainer):
         # For RPC, all ranks other than 0 just need to call rpc.shutdown()
-        torch_distrib.barrier(group=self.data_parallel_group)
+        torch_distrib.barrier()
         rpc_pipe.PipeModel.trainer = trainer.model
         rpc_pipe.PipeModel.configure_optimizers = trainer.model.configure_optimizers
         torch.distributed.rpc.shutdown()
 
-    def set_main_rpc_process(self, global_rank):
-        # TODO assumes that there is only 1 main process. This is incorrect
-        # TODO if we split the models onto 4 GPUs, but have 2 data parallel groups
-        self.main_rpc_process = global_rank != 0
+    def set_main_rpc_process(self):
+        self.main_rpc_process = torch_distrib.get_rank(group=mpu.get_pipeline_parallel_group()) == 0
 
     def on_main_rpc_connection(self, trainer):
         # Create pipe_module
         model = trainer.get_model()
         self._find_pipe_module(model)
-        torch_distrib.barrier(group=self.data_parallel_group)
+        torch_distrib.barrier()
         model.foreach_worker(register_optimizers, include_self=True)
 
     def _check_manual_optimization(self, trainer):
