@@ -146,9 +146,11 @@ class PipeRPCPlugin(RPCPlugin):
     def on_exit_rpc_process(self, trainer):
         if not trainer.testing:
             torch_distrib.barrier()  # Ensure we await main process initialization
-            # For RPC, all ranks other than 0 just need to call rpc.shutdown()
+
+            # Add trainer/configure_optimizers to the pipe model for access in all worker processes
             rpc_pipe.PipeModel.trainer = trainer
             rpc_pipe.PipeModel.configure_optimizers = trainer.model.configure_optimizers
+        # For RPC, all ranks other than 0 just need to call rpc.shutdown()
         torch.distributed.rpc.shutdown()
 
     def set_main_rpc_process(self):
