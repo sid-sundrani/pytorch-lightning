@@ -137,7 +137,7 @@ class PipeRPCPlugin(RPCPlugin):
         """
         if torch_distrib.is_initialized() and trainer.testing and trainer.lgob:
             return True
-        return trainer.global_rank == 0
+        return trainer.global_rank != 0
 
     def init_model_parallel_groups(self, world_size):
         self.num_gpus_per_model = len(self.balance)
