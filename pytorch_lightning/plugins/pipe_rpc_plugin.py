@@ -59,7 +59,7 @@ class PipeRPCPlugin(RPCPlugin):
             world_size: int,
             is_slurm_managing_tasks: bool = True,
     ) -> None:
-
+        self._check_manual_optimization(trainer)
         if not self._skip_init_connections(trainer):
             super().init_rpc_connection(
                 global_rank=global_rank,
@@ -73,16 +73,14 @@ class PipeRPCPlugin(RPCPlugin):
                 world_size=world_size,
                 is_slurm_managing_tasks=is_slurm_managing_tasks
             )
-        self.set_main_rpc_process(trainer.global_rank)
-
-        if self.main_rpc_process:
-            self._check_sequential_model_exists(trainer)
-            if self.balance is None:
-                self.balance = self._infer_model_balance(trainer)
-            self._assert_valid_model_balance(trainer)
-
-            self._check_manual_optimization(trainer)
             self.init_model_parallel_groups(world_size)
+
+            if self.main_rpc_process:
+                self._check_sequential_model_exists(trainer)
+                if self.balance is None:
+                    self.balance = self._infer_model_balance(trainer)
+                self._assert_valid_model_balance(trainer)
+        self.set_main_rpc_process(trainer.global_rank)
 
     def _infer_model_balance(self, trainer):
         model = trainer.get_model()
