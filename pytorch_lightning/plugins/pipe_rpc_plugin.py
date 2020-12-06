@@ -1,5 +1,5 @@
 import os
-from distutils.version import LooseVersion
+
 from typing import List, Optional
 
 import torch
@@ -10,12 +10,10 @@ from torch.nn.parallel import DistributedDataParallel
 from pytorch_lightning import LightningModule
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
-from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities import FAIRSCALE_PIPE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-FAIRSCALE_AVAILABLE &= LooseVersion(torch.__version__) >= LooseVersion("1.6.0")
-
-if FAIRSCALE_AVAILABLE:
+if FAIRSCALE_PIPE_AVAILABLE:
     import fairscale.nn.model_parallel as mpu
     from fairscale.nn import PipeRPCWrapper
     from fairscale.nn.model_parallel.utils import ensure_divisibility
@@ -34,6 +32,7 @@ class PipeRPCPlugin(RPCPlugin):
                  balance_mode: str = "balance_by_size",
                  pipelined_backward: Optional[bool] = True,
                  **kwargs):
+        self._check_pipe_available()
         super().__init__(**kwargs)
 
         self.balance = balance
@@ -100,7 +99,7 @@ class PipeRPCPlugin(RPCPlugin):
 
     def _find_pipe_module(self, model):
         found_module = False
-        if hasattr(model, "layers") and isinstance(model.layers, PipeRPCWrapper):
+        if hasattr(model, "layers") and isinstance(model.layers, LightningPipeModule):
             # model has been wrapped already
             found_module = True
         elif hasattr(model, "layers") and isinstance(model.layers, nn.Sequential):
@@ -145,10 +144,11 @@ class PipeRPCPlugin(RPCPlugin):
         mpu.initialize_model_parallel(num_model_parallel, world_size)
 
     def on_exit_rpc_process(self, trainer):
-        # For RPC, all ranks other than 0 just need to call rpc.shutdown()
-        torch_distrib.barrier()
-        rpc_pipe.PipeModel.trainer = trainer
-        rpc_pipe.PipeModel.configure_optimizers = trainer.model.configure_optimizers
+        torch_distrib.barrier()  # Ensure we await main process initialization
+        if not trainer.testing:
+            # For RPC, all ranks other than 0 just need to call rpc.shutdown()
+            rpc_pipe.PipeModel.trainer = trainer
+            rpc_pipe.PipeModel.configure_optimizers = trainer.model.configure_optimizers
         torch.distributed.rpc.shutdown()
 
     def set_main_rpc_process(self):
@@ -158,8 +158,9 @@ class PipeRPCPlugin(RPCPlugin):
         # Create pipe_module
         model = trainer.get_model()
         self._find_pipe_module(model)
-        torch_distrib.barrier()
-        model.foreach_worker(register_optimizers, include_self=True)
+        torch_distrib.barrier()  # Ensure we join main process initialization
+        if not trainer.testing:
+            model.foreach_worker(register_optimizers, include_self=True)
 
     def _check_manual_optimization(self, trainer):
         automatic_optimization = trainer.train_loop.automatic_optimization
@@ -215,6 +216,12 @@ class PipeRPCPlugin(RPCPlugin):
     @property
     def is_main_rpc_process(self):
         return self.main_rpc_process
+
+    def _check_pipe_available(self):
+        if not FAIRSCALE_PIPE_AVAILABLE:
+            raise MisconfigurationException(
+                'PipeRPCPlugin requires FairScale and currently is only supported on PyTorch 1.6.'
+            )
 
 
 class LightningPipeModule(nn.Module):

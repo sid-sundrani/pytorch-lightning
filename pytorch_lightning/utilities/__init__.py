@@ -14,6 +14,7 @@
 """General utilities"""
 import importlib
 import platform
+from distutils.version import LooseVersion
 from enum import Enum
 
 import numpy
@@ -54,6 +55,7 @@ HOROVOD_AVAILABLE = _module_available("horovod.torch")
 
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 FAIRSCALE_AVAILABLE = platform.system() != 'Windows' and _module_available('fairscale.nn.data_parallel')
+FAIRSCALE_PIPE_AVAILABLE = FAIRSCALE_AVAILABLE and LooseVersion(torch.__version__) == LooseVersion("1.6.0")
 BOLT_AVAILABLE = _module_available('pl_bolts')
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
