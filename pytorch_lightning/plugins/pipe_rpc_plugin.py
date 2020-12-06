@@ -60,16 +60,11 @@ class PipeRPCPlugin(RPCPlugin):
             is_slurm_managing_tasks: bool = True,
     ) -> None:
 
-        super().init_rpc_connection(
-            global_rank=global_rank,
-            world_size=world_size
-        )
-
-        if not self._skip_init_on_current_process(trainer):
-            self._check_sequential_model_exists(trainer)
-            if self.balance is None:
-                self.balance = self._infer_model_balance(trainer)
-            self._assert_valid_model_balance(trainer)
+        if not self._skip_init_connections(trainer):
+            super().init_rpc_connection(
+                global_rank=global_rank,
+                world_size=world_size
+            )
 
             super().init_distributed_connection(
                 trainer=trainer,
@@ -78,6 +73,14 @@ class PipeRPCPlugin(RPCPlugin):
                 world_size=world_size,
                 is_slurm_managing_tasks=is_slurm_managing_tasks
             )
+        self.set_main_rpc_process(trainer.global_rank)
+
+        if self.main_rpc_process:
+            self._check_sequential_model_exists(trainer)
+            if self.balance is None:
+                self.balance = self._infer_model_balance(trainer)
+            self._assert_valid_model_balance(trainer)
+
             self._check_manual_optimization(trainer)
             self.init_model_parallel_groups(world_size)
 
@@ -126,18 +129,15 @@ class PipeRPCPlugin(RPCPlugin):
             raise MisconfigurationException(
                 f'The provided balance sum: {sum(self.balance)} doesn t match your Sequential length: {len(model.layers)}')
 
-    def _skip_init_on_current_process(self, trainer):
+    def _skip_init_connections(self, trainer):
         """
-        Ensures we skip on all other processes that are not handling main communication to other GPUs.
-        Args:
-            trainer:
-
-        Returns: Whether to skip initialization, and
+        Skip initialization if torch is already initialized and we're in testing.
+        Returns: Whether to skip initialization
 
         """
         if torch_distrib.is_initialized() and trainer.testing:
             return True
-        return trainer.global_rank != 0
+        return False
 
     def init_model_parallel_groups(self, world_size):
         self.num_gpus_per_model = len(self.balance)
@@ -147,19 +147,21 @@ class PipeRPCPlugin(RPCPlugin):
 
     def on_exit_rpc_process(self, trainer):
         # For RPC, all ranks other than 0 just need to call rpc.shutdown()
+        torch_distrib.barrier(group=self.data_parallel_group)
         rpc_pipe.PipeModel.trainer = trainer.model
         rpc_pipe.PipeModel.configure_optimizers = trainer.model.configure_optimizers
         torch.distributed.rpc.shutdown()
 
-    def should_exit_rpc_process(self, global_rank):
-        return global_rank != 0
+    def set_main_rpc_process(self, global_rank):
+        # TODO assumes that there is only 1 main process. This is incorrect
+        # TODO if we split the models onto 4 GPUs, but have 2 data parallel groups
+        self.main_rpc_process = global_rank != 0
 
     def on_main_rpc_connection(self, trainer):
-        self.main_rpc_process = True
-
         # Create pipe_module
         model = trainer.get_model()
         self._find_pipe_module(model)
+        torch_distrib.barrier(group=self.data_parallel_group)
         model.foreach_worker(register_optimizers, include_self=True)
 
     def _check_manual_optimization(self, trainer):

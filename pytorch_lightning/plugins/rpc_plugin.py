@@ -36,9 +36,6 @@ class RPCPlugin(DDPPlugin):
     def on_main_rpc_connection(self, trainer):
         raise NotImplementedError
 
-    def should_exit_rpc_process(self, global_rank):
-        raise NotImplementedError
-
     def on_exit_rpc_process(self, trainer):
         raise NotImplementedError
 
