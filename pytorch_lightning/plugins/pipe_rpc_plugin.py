@@ -13,7 +13,7 @@ from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-FAIRSCALE_AVAILABLE &= LooseVersion(torch.__version__) == LooseVersion("1.6.0")
+FAIRSCALE_AVAILABLE &= LooseVersion(torch.__version__) >= LooseVersion("1.6.0")
 
 if FAIRSCALE_AVAILABLE:
     import fairscale.nn.model_parallel as mpu
