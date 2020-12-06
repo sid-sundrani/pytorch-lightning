@@ -243,6 +243,3 @@ class Accelerator(object):
 
     def on_save(self, checkpoint):
         return checkpoint
-
-
-
