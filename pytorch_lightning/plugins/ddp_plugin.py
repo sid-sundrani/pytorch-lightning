@@ -45,10 +45,6 @@ class DDPPlugin(LightningPlugin):
     def __init__(self, **kwargs):
         self._ddp_kwargs: Dict[str, Any] = kwargs
 
-    @property
-    def broadcast_and_barrier_supported(self):
-        return True
-
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> LightningDistributedDataParallel:
@@ -156,3 +152,12 @@ class DDPPlugin(LightningPlugin):
         if isinstance(model, LightningDistributedDataParallel):
             return model.module
         return model
+
+    @property
+    def data_parallel_group(self) -> torch_distrib.group:
+        """
+        Return the group that this process exists in. By default, this is the world size.
+        Useful for when additional parallel groups have been created, to select certain processes.
+        Returns: The ProcessGroup this process exists in.
+        """
+        return torch_distrib.group.WORLD

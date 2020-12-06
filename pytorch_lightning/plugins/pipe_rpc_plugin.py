@@ -25,7 +25,7 @@ if FAIRSCALE_AVAILABLE:
     from torch.distributed import rpc
 
 
-class PipeRpcPlugin(RPCPlugin):
+class PipeRPCPlugin(RPCPlugin):
     def __init__(self,
                  balance: Optional[List[int]] = None,
                  num_partitions: Optional[int] = None,
@@ -49,6 +49,7 @@ class PipeRpcPlugin(RPCPlugin):
         self.checkpoint = checkpoint
         self.balance_mode = balance_mode
         self.pipelined_backward = pipelined_backward
+        self.main_rpc_process = False  # Updated by main process, default for all secondary processes
 
     def init_distributed_connection(
             self,
@@ -79,11 +80,6 @@ class PipeRpcPlugin(RPCPlugin):
             )
             self._check_manual_optimization(trainer)
             self.init_model_parallel_groups(world_size)
-
-    @property
-    def broadcast_and_barrier_supported(self):
-        assert self._broadcast_and_barrier_supported is not None
-        return self._broadcast_and_barrier_supported
 
     def _infer_model_balance(self, trainer):
         model = trainer.get_model()
@@ -148,11 +144,10 @@ class PipeRpcPlugin(RPCPlugin):
         ensure_divisibility(world_size, self.num_gpus_per_model)
         num_model_parallel = self.num_gpus_per_model / world_size
         mpu.initialize_model_parallel(num_model_parallel, world_size)
-        self._broadcast_and_barrier_supported = num_model_parallel > 1
 
     def on_exit_rpc_process(self, trainer):
         # For RPC, all ranks other than 0 just need to call rpc.shutdown()
-        torch_distrib.barrier()
+        torch_distrib.barrier(group=self.data_parallel_group)
         rpc_pipe.PipeModel.trainer = trainer.model
         rpc_pipe.PipeModel.configure_optimizers = trainer.model.configure_optimizers
         torch.distributed.rpc.shutdown()
@@ -161,12 +156,13 @@ class PipeRpcPlugin(RPCPlugin):
         return global_rank != 0
 
     def on_main_rpc_connection(self, trainer):
+        self.main_rpc_process = True
+
         # Create pipe_module
         model = trainer.get_model()
         self._find_pipe_module(model)
-        torch_distrib.barrier()
+        torch_distrib.barrier(group=self.data_parallel_group)
         model.foreach_worker(register_optimizers, include_self=True)
-        trainer.is_master = True
 
     def _check_manual_optimization(self, trainer):
         automatic_optimization = trainer.train_loop.automatic_optimization
@@ -188,7 +184,7 @@ class PipeRpcPlugin(RPCPlugin):
         return ddp_plugin
 
     def rpc_save_model(self, save_model_fn, last_filepath, trainer, pl_module):
-        model = self.trainer.get_model()
+        model = trainer.get_model()
         if hasattr(model, "foreach_worker"):
             current_layers = pl_module.layers
             model.foreach_worker(save, {"num_gpus_per_model": self.num_gpus_per_model}, include_self=True)
@@ -197,23 +193,26 @@ class PipeRpcPlugin(RPCPlugin):
             del pl_module.layers
             pl_module.layers = current_layers
 
-    def _optimizer_step(self, opt_idx, *args, **kwargs):
-        # Create pipe_module
-        model = self.trainer.get_model()
+    def _optimizer_step(self, model, opt_idx, *args, **kwargs):
         model.foreach_worker(run_optimizer, {"opt_idx": opt_idx}, include_self=False)
 
-    def optimizer_step(self, is_master, optimizer, closure, *args, **kwargs):
-        if not is_master:
-            return False
-
+    def optimizer_step(self, is_master_rpc_process, model, optimizer, closure, *args, **kwargs):
         opt_idx = optimizer._optimizer_idx
         self._optimizers_map[opt_idx] = not self._optimizers_map[opt_idx]
 
         if self._optimizers_map[opt_idx]:
             optimizer.step(closure=closure, *args, **kwargs)
-            self._optimizer_step(opt_idx, *args, **kwargs)
+            self._optimizer_step(model, opt_idx, *args, **kwargs)
             return True
         return False
+
+    @property
+    def data_parallel_group(self) -> torch_distrib.group:
+        return mpu.get_data_parallel_group()
+
+    @property
+    def is_main_rpc_process(self):
+        return self.main_rpc_process
 
 
 class LightningPipeModule(nn.Module):
@@ -280,7 +279,6 @@ def register_optimizers(ctx, model):
     model.trainer.lr_schedulers = lr_schedulers
     model.trainer.optimizer_frequencies = optimizer_frequencies
     model.trainer.convert_to_lightning_optimizers()
-    model.trainer.is_master = False
 
 
 def do_nothing_optimizer_closure():

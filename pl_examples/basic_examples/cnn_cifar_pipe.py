@@ -27,7 +27,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.metrics.functional import accuracy
-from pytorch_lightning.plugins.pipe_rpc_plugin import FAIRSCALE_AVAILABLE, PipeRpcPlugin
+from pytorch_lightning.plugins.pipe_rpc_plugin import FAIRSCALE_AVAILABLE, PipeRPCPlugin
 from pytorch_lightning.utilities import BOLT_AVAILABLE
 
 if BOLT_AVAILABLE:
@@ -229,7 +229,7 @@ def run(args):
         # port to be used by rpc.init_rpc
         os.environ["RPC_MASTER_PORT"] = "15000"
         # 17 first layers will be put on gpu 0 and 10 remaining will be put on gpu 1
-        plugins = [PipeRpcPlugin(balance=[17, 10])]
+        plugins = [PipeRPCPlugin(balance=[17, 10])]
         gpus = 2
         accelerator = "ddp"
     else:

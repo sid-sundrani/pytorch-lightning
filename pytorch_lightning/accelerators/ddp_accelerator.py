@@ -163,8 +163,8 @@ class DDPAccelerator(Accelerator):
         return output
 
     def barrier(self, name: Optional[str] = None):
-        if torch_distrib.is_initialized() and self.ddp_plugin.broadcast_and_barrier_supported:
-            torch_distrib.barrier()
+        if torch_distrib.is_initialized():
+            torch_distrib.barrier(group=self.ddp_plugin.data_parallel_group)
 
     def _check_can_spawn_children(self):
         if self._has_spawned_children:
@@ -193,14 +193,12 @@ class DDPAccelerator(Accelerator):
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
         torch_distrib.all_reduce(stop, op=torch_distrib.reduce_op.SUM)
-        torch_distrib.barrier()
+        self.barrier('early_stopping')
         should_stop = stop == self.trainer.world_size
         return should_stop
 
     def broadcast(self, obj, src=0):
-        if self.ddp_plugin.broadcast_and_barrier_supported:
-            return self.dist.broadcast(obj)
-        return obj
+        return self.dist.broadcast(obj, group=self.ddp_plugin.data_parallel_group)
 
     def ddp_train(self, process_idx, model):
         """

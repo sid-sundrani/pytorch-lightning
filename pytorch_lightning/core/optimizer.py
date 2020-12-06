@@ -92,11 +92,17 @@ class LightningOptimizer:
                     break
 
         accelerator_backend = trainer.accelerator_backend
-        ddp_plugin = accelerator_backend.ddp_plugin if accelerator_backend is not None else None
-        if ddp_plugin is not None and isinstance(ddp_plugin, RPCPlugin):
-            should_return = ddp_plugin.optimizer_step(trainer.is_master, self, closure, *args, **kwargs)
-            if should_return:
+        if accelerator_backend is not None and accelerator_backend.rpc_enabled:
+            if not accelerator_backend.ddp_plugin.is_main_rpc_process:
                 return
+            accelerator_backend.ddp_plugin.optimizer_step(
+                is_master_rpc_process=trainer.is_master_rpc_process,
+                model=model,
+                lightning_optimizer=self,
+                closure=closure,
+                *args,
+                **kwargs
+            )
 
         if trainer.on_tpu:
             with trainer.profiler.profile(profiler_name):

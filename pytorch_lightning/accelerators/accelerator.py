@@ -21,6 +21,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -248,6 +249,12 @@ class Accelerator(object):
 
     def on_save(self, checkpoint):
         return checkpoint
+
+    @property
+    def rpc_enabled(self):
+        if self.ddp_plugin is not None and isinstance(self.ddp_plugin, RPCPlugin):
+            return True
+        return False
 
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...

@@ -43,9 +43,13 @@ class RPCPlugin(DDPPlugin):
         raise NotImplementedError
 
     def optimizer_step(self,
-                       is_master,
+                       is_master_rpc_process,
+                       model,
                        lightning_optimizer,
                        closure,
                        *args,
                        **kwargs):
+        raise NotImplementedError
+
+    def is_main_rpc_process(self):
         raise NotImplementedError
