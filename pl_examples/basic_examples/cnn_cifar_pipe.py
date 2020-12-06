@@ -21,7 +21,6 @@ import torch.distributed as torch_distrib
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-from torch import optim
 
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
@@ -118,6 +117,7 @@ class ConvNN(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
+
 ###############################
 #       LightningModule       #
 ###############################
@@ -147,6 +147,7 @@ class LitResnet(pl.LightningModule):
             loss = F.nll_loss(logits, y)
             self.manual_backward(loss, opt)
             self.log('train_loss', loss, prog_bar=True)
+
         opt.step(closure=closure)
 
     def training_step(self, batch, batch_idx):
@@ -197,7 +198,6 @@ class LitResnet(pl.LightningModule):
 #################################
 
 def instantiate_datamodule(args):
-
     train_transforms = torchvision.transforms.Compose([
         torchvision.transforms.RandomCrop(32, padding=4),
         torchvision.transforms.RandomHorizontalFlip(),
@@ -221,7 +221,6 @@ def instantiate_datamodule(args):
 
 
 def run(args):
-
     cifar10_dm = instantiate_datamodule(args)
 
     plugins = None
@@ -252,19 +251,19 @@ def run(args):
         automatic_optimization=not args.use_pipe,
     )
     trainer.fit(model, cifar10_dm)
-    results = trainer.test(model, datamodule=cifar10_dm)
+    trainer.test(model, datamodule=cifar10_dm)
 
-    if args.use_pipe:
-        if os.getenv("LOCAL_RANK") == 0:
-            torch.distributed.rpc.shutdown()
+    if args.use_pipe and trainer.global_rank == 0:
+        torch.distributed.rpc.shutdown()
 
 
 if __name__ == "__main__":
-    if FAIRSCALE_AVAILABLE and BOLT_AVAILABLE:
-        parser = ArgumentParser(description="Pipe Example")
-        parser.add_argument("--use_pipe", type=int, default=1)
-        parser.add_argument("--batch_size", type=int, default=32)
-        parser = Trainer.add_argparse_args(parser)
+    parser = ArgumentParser(description="Pipe Example")
+    parser.add_argument("--use_pipe", type=int, default=1)
+    parser.add_argument("--batch_size", type=int, default=32)
+    parser = Trainer.add_argparse_args(parser)
 
-        max_memory, total_time = record_model_stats(run, parser.parse_args())
-        print(max_memory, total_time)
+    assert BOLT_AVAILABLE, "Bolts is required for this example, install it via pip install pytorch-lightning-bolts"
+
+    max_memory, total_time = record_model_stats(run, parser.parse_args())
+    print(max_memory, total_time)
