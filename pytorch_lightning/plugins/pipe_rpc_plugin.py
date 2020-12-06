@@ -99,15 +99,17 @@ class PipeRPCPlugin(RPCPlugin):
                 'Did you defined set your sequential model as an `layers` attribute of your model ?')
 
     def _find_pipe_module(self, model):
-        # try to wrap for the user
         found_module = False
-        if hasattr(model, "layers") and isinstance(model.layers, nn.Sequential):
+        if hasattr(model, "layers") and isinstance(model.layers, PipeRPCWrapper):
+            # model has been wrapped already
+            found_module = True
+        elif hasattr(model, "layers") and isinstance(model.layers, nn.Sequential):
+            # try to wrap model for the user
             model.layers = LightningPipeModule(
                 model.layers,
                 balance=self.balance,
                 microbatches=self.microbatches,
                 checkpoint=self.checkpoint,
-                pipe_cls=PipeRPCWrapper
             )
             model.final_stage = model.layers.module.final_stage
             model.foreach_worker = model.layers.module.foreach_worker
@@ -242,19 +244,18 @@ class LightningPipeModule(nn.Module):
                  module: nn.Sequential,
                  balance: List[int],
                  microbatches: int = 8,
-                 checkpoint='never',
-                 pipe_cls=None):
+                 checkpoint='never'):
         super().__init__()
         self.module = module
         self.balance = balance
         self.microbatches = microbatches
         self.checkpoint = checkpoint
-        self._init_pipe(pipe_cls)
+        self._init_pipe()
 
-    def _init_pipe(self, pipe_cls):
+    def _init_pipe(self):
         device = torch.device("cuda", torch_distrib.get_rank())
 
-        self.module = pipe_cls(
+        self.module = PipeRPCWrapper(
             module=self.module,
             balance=self.balance,
             chunks=self.microbatches,
