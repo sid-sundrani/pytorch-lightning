@@ -61,17 +61,16 @@ class PipeRPCPlugin(RPCPlugin):
     ) -> None:
         self._check_manual_optimization(trainer)
         if not self._skip_init_connections(trainer):
-            super().init_rpc_connection(
-                global_rank=global_rank,
-                world_size=world_size
-            )
-
             super().init_distributed_connection(
                 trainer=trainer,
                 cluster_environment=cluster_environment,
                 global_rank=global_rank,
                 world_size=world_size,
                 is_slurm_managing_tasks=is_slurm_managing_tasks
+            )
+            super().init_rpc_connection(
+                global_rank=global_rank,
+                world_size=world_size
             )
             self.init_model_parallel_groups(world_size)
 

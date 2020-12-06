@@ -238,7 +238,7 @@ class DDPAccelerator(Accelerator):
         )
 
         if isinstance(self.ddp_plugin, RPCPlugin):
-            if not self.ddp_plugin.is_main_rpc_process():
+            if not self.ddp_plugin.is_main_rpc_process:
                 self.ddp_plugin.on_exit_rpc_process(self.trainer)
                 return
             self.ddp_plugin.on_main_rpc_connection(self.trainer)
