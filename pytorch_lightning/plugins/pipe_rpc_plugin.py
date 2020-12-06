@@ -135,7 +135,7 @@ class PipeRPCPlugin(RPCPlugin):
         Returns: Whether to skip initialization, and
 
         """
-        if torch_distrib.is_initialized() and trainer.testing and trainer.lgob:
+        if torch_distrib.is_initialized() and trainer.testing:
             return True
         return trainer.global_rank != 0
 
