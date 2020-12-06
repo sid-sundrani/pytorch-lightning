@@ -147,7 +147,6 @@ class PipeRPCPlugin(RPCPlugin):
 
     def on_exit_rpc_process(self, trainer):
         # For RPC, all ranks other than 0 just need to call rpc.shutdown()
-        torch_distrib.barrier(group=self.data_parallel_group)
         rpc_pipe.PipeModel.trainer = trainer.model
         rpc_pipe.PipeModel.configure_optimizers = trainer.model.configure_optimizers
         torch.distributed.rpc.shutdown()
@@ -161,7 +160,6 @@ class PipeRPCPlugin(RPCPlugin):
         # Create pipe_module
         model = trainer.get_model()
         self._find_pipe_module(model)
-        torch_distrib.barrier(group=self.data_parallel_group)
         model.foreach_worker(register_optimizers, include_self=True)
 
     def _check_manual_optimization(self, trainer):
