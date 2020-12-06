@@ -26,7 +26,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.metrics.functional import accuracy
-from pytorch_lightning.plugins.pipe_rpc_plugin import FAIRSCALE_AVAILABLE, PipeRPCPlugin
+from pytorch_lightning.plugins.pipe_rpc_plugin import PipeRPCPlugin
 from pytorch_lightning.utilities import BOLT_AVAILABLE
 
 if BOLT_AVAILABLE:
@@ -35,19 +35,6 @@ if BOLT_AVAILABLE:
 
 
 def record_model_stats(run, args):
-    """
-    Helper to calculate wall clock time for fit + max allocated memory.
-
-    Args:
-        trainer: The trainer object.
-        model: The model to fit.
-        use_cuda: Whether to sync CUDA kernels.
-
-    Returns:
-        Max Memory if using GPUs, and total wall clock time.
-    """
-    max_memory = None
-
     time_start = time.perf_counter()
     torch.cuda.reset_peak_memory_stats()
     torch.cuda.synchronize()
@@ -56,7 +43,6 @@ def record_model_stats(run, args):
 
     torch.cuda.synchronize()
     max_memory = torch.cuda.max_memory_allocated() / 2 ** 20
-
     total_time = time.perf_counter() - time_start
 
     return max_memory, total_time
