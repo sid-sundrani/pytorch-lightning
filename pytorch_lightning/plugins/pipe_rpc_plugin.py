@@ -144,8 +144,8 @@ class PipeRPCPlugin(RPCPlugin):
         mpu.initialize_model_parallel(num_model_parallel, world_size)
 
     def on_exit_rpc_process(self, trainer):
-        torch_distrib.barrier()  # Ensure we await main process initialization
         if not trainer.testing:
+            torch_distrib.barrier()  # Ensure we await main process initialization
             # For RPC, all ranks other than 0 just need to call rpc.shutdown()
             rpc_pipe.PipeModel.trainer = trainer
             rpc_pipe.PipeModel.configure_optimizers = trainer.model.configure_optimizers
@@ -158,8 +158,8 @@ class PipeRPCPlugin(RPCPlugin):
         # Create pipe_module
         model = trainer.get_model()
         self._find_pipe_module(model)
-        torch_distrib.barrier()  # Ensure we join main process initialization
         if not trainer.testing:
+            torch_distrib.barrier()  # Ensure we join main process initialization
             model.foreach_worker(register_optimizers, include_self=True)
 
     def _check_manual_optimization(self, trainer):
