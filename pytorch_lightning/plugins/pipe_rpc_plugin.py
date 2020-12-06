@@ -191,12 +191,17 @@ class PipeRPCPlugin(RPCPlugin):
     def _optimizer_step(self, model, opt_idx, *args, **kwargs):
         model.foreach_worker(run_optimizer, {"opt_idx": opt_idx}, include_self=False)
 
-    def optimizer_step(self, model, optimizer, closure, *args, **kwargs):
-        opt_idx = optimizer._optimizer_idx
+    def optimizer_step(self,
+                       model,
+                       lightning_optimizer,
+                       closure,
+                       *args,
+                       **kwargs):
+        opt_idx = lightning_optimizer._optimizer_idx
         self._optimizers_map[opt_idx] = not self._optimizers_map[opt_idx]
 
         if self._optimizers_map[opt_idx]:
-            optimizer.step(closure=closure, *args, **kwargs)
+            lightning_optimizer.step(closure=closure, *args, **kwargs)
             self._optimizer_step(model, opt_idx, *args, **kwargs)
             return True
         return False
