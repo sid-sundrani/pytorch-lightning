@@ -256,6 +256,10 @@ class Accelerator(object):
             return True
         return False
 
+    @property
+    def distributed_sampler_kwargs(self):
+        raise NotImplementedError
+
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
 class BackendType(Enum):

@@ -211,6 +211,13 @@ class PipeRPCPlugin(RPCPlugin):
             return True
         return False
 
+    def distributed_sampler_kwargs(self, distributed_sampler_kwargs):
+        distributed_sampler_kwargs = dict(
+            num_replicas=len(mpu.get_model_parallel_group()),
+            rank=torch_distrib.get_rank() % len(self.balance),
+        )
+        return distributed_sampler_kwargs
+
     @property
     def data_parallel_group(self) -> torch_distrib.group:
         return mpu.get_data_parallel_group()

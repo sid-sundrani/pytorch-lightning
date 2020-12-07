@@ -153,6 +153,9 @@ class DDPPlugin(LightningPlugin):
             return model.module
         return model
 
+    def distributed_sampler_kwargs(self, distributed_sampler_kwargs):
+        return distributed_sampler_kwargs
+
     @property
     def data_parallel_group(self) -> torch_distrib.group:
         """
