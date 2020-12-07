@@ -71,7 +71,7 @@ class PipeRPCPlugin(RPCPlugin):
                 global_rank=global_rank,
                 world_size=world_size
             )
-            self.init_model_parallel_groups(world_size)
+            self.init_model_parallel_groups()
 
             if self.main_rpc_process:
                 self._check_sequential_model_exists(trainer)
@@ -137,11 +137,13 @@ class PipeRPCPlugin(RPCPlugin):
             return True
         return False
 
-    def init_model_parallel_groups(self, world_size):
+    def init_model_parallel_groups(self):
         self.num_gpus_per_model = len(self.balance)
-        ensure_divisibility(world_size, self.num_gpus_per_model)
-        num_model_parallel = self.num_gpus_per_model / world_size
-        mpu.initialize_model_parallel(num_model_parallel, world_size)
+        num_model_parallel = 1  # TODO currently no support for vertical model parallel
+        mpu.initialize_model_parallel(
+            model_parallel_size_=num_model_parallel,
+            pipeline_length=self.num_gpus_per_model
+        )
 
     def on_exit_rpc_process(self, trainer):
         if not trainer.testing:
@@ -187,8 +189,12 @@ class PipeRPCPlugin(RPCPlugin):
         model = trainer.get_model()
         if hasattr(model, "foreach_worker"):
             current_layers = pl_module.layers
-            model.foreach_worker(save, {"num_gpus_per_model": self.num_gpus_per_model}, include_self=True)
-            pl_module.layers = reload_sequential(self.num_gpus_per_model)
+            model.foreach_worker(
+                save_layers_on_all_rank_zero_workers,
+                {"num_gpus_per_model": self.num_gpus_per_model},
+                include_self=True
+            )
+            pl_module.layers = reload_sequential_from_saved_layers(self.num_gpus_per_model)
             save_model_fn(last_filepath, trainer, pl_module)
             del pl_module.layers
             pl_module.layers = current_layers
@@ -310,7 +316,7 @@ def run_optimizer(ctx, model):
     optimizer.step(closure=closure)
 
 
-def save(ctx, model):
+def save_layers_on_all_rank_zero_workers(ctx, model):
     num_gpus_per_model = ctx["num_gpus_per_model"]
     rank = torch_distrib.get_rank()
     if rank in range(num_gpus_per_model):
@@ -318,7 +324,7 @@ def save(ctx, model):
         torch.save(seq, f"seq_{rank}.pt")
 
 
-def reload_sequential(num_gpus_per_model):
+def reload_sequential_from_saved_layers(num_gpus_per_model):
     partial_seqs = [torch.load(f"seq_{rank}.pt", map_location='cpu') for rank in range(num_gpus_per_model)]
     seq = nn.Sequential()
     for p_seq in partial_seqs:
