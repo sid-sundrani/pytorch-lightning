@@ -232,7 +232,9 @@ class TrainLoop:
         model = self.trainer.get_model()
 
         # reset train dataloader
-        if self.trainer.reload_dataloaders_every_epoch:
+        reload_dl_every_n_epoch = self.trainer.reload_dataloaders_every_n_epoch
+
+        if reload_dl_every_n_epoch and (not epoch % reload_dl_every_n_epoch):
             self.trainer.reset_train_dataloader(model)
 
         # set seed for distributed sampler (enables shuffling for each epoch)
