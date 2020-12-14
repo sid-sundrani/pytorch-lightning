@@ -44,7 +44,6 @@ class DataConnector(object):
                 f" got {reload_dataloaders_every_n_epochs}."
             )
 
-        self.trainer.should_reload_dl_epoch = bool(reload_dataloaders_every_n_epochs)
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
         self.trainer._is_data_prepared = False
 
