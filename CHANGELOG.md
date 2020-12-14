@@ -12,27 +12,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-
-### Deprecated
-
-
-### Removed
-
-
-### Fixed
-
-
-
-## [unreleased.BugFix] - YYYY-MM-DD
-
-### Added
-
-
-### Changed
 - Changed `Trainer.reload_dataloaders_every_epoch` to `Trainer.reload_dataloaders_every_n_epochs` ([#5043](https://github.com/PyTorchLightning/pytorch-lightning/pull/5043))
 
 
 ### Deprecated
+
 - Deprecated `reload_dataloaders_every_epoch` argument of `Trainer` ([#5043](https://github.com/PyTorchLightning/pytorch-lightning/pull/5043))
 
 
@@ -40,11 +24,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 ### Fixed
-
-- Fixed trainer by default `None` in `DDPAccelerator` ([#4915](https://github.com/PyTorchLightning/pytorch-lightning/pull/4915))
-
-
-- Fixed `LightningOptimizer` exposes optimizer attributes ([#5095](https://github.com/PyTorchLightning/pytorch-lightning/pull/5095))
 
 
 
