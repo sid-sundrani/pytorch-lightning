@@ -434,9 +434,9 @@ class CustomMNISTDataModule(LightningDataModule):
         return DataLoader(self.mnist_train, batch_size=4)
 
 
-def test_dm_reload_dataloaders_every_epoch(tmpdir):
+def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
     """Test datamodule, where trainer argument
-    reload_dataloaders_every_epoch is set to True/False"""
+    reload_dataloaders_every_n_epochs is set to non negative integer"""
 
     dm = CustomMNISTDataModule(tmpdir)
 
@@ -450,8 +450,8 @@ def test_dm_reload_dataloaders_every_epoch(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=2,
+        max_epochs=3,
         limit_train_batches=0.01,
-        reload_dataloaders_every_n_epochs=True,
+        reload_dataloaders_every_n_epochs=2,
     )
     trainer.fit(model, dm)
