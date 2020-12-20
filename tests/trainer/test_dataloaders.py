@@ -967,7 +967,7 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         val_check_interval=0.3,
-        reload_dataloaders_every_n_epochs=True,
+        reload_dataloaders_every_n_epochs=1,
         max_epochs=3,
     )
     result = trainer.fit(model)
