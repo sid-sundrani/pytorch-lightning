@@ -435,8 +435,8 @@ class CustomMNISTDataModule(LightningDataModule):
 
 
 def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
-    """Test datamodule, where trainer argument
-    reload_dataloaders_every_n_epochs is set to a non negative integer"""
+    """Tests if the current_epoch property is updated on time, for the datamodule, when
+    trainer argument reload_dataloaders_every_n_epochs is set to a non negative integer"""
 
     dm = CustomMNISTDataModule(tmpdir)
 
