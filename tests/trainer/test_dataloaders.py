@@ -1095,7 +1095,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         limit_train_batches=0.3,
         limit_val_batches=0.3,
         num_sanity_val_steps=0,
-        reload_dataloaders_every_n_epochs=True,
+        reload_dataloaders_every_n_epochs=1,
         max_epochs=3,
     )
     result = trainer.fit(model)
