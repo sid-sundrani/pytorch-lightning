@@ -1080,7 +1080,7 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
 def test_dataloaders_load_every_n_epochs_exception(tmpdir, n):
 
     with pytest.raises(MisconfigurationException, match='should be an int >'):
-        trainer = Trainer(
+        Trainer(
             default_root_dir=tmpdir,
             limit_train_batches=0.3,
             limit_val_batches=0.3,
