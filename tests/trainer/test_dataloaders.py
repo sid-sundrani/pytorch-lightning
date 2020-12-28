@@ -941,6 +941,7 @@ def test_dataloaders_load_only_once(tmpdir):
         max_epochs=3,
     )
     result = trainer.fit(model)
+    assert result
 
     assert len(trainer.dev_debugger.val_dataloader_calls) == 1
     assert len(trainer.dev_debugger.test_dataloader_calls) == 0
@@ -971,6 +972,7 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         max_epochs=3,
     )
     result = trainer.fit(model)
+    assert result
 
     trainer.test()
 
@@ -1014,6 +1016,7 @@ def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
         max_epochs=3,
     )
     result = trainer.fit(model)
+    assert result
 
     assert len(trainer.dev_debugger.val_dataloader_calls) == 1
     assert len(trainer.dev_debugger.test_dataloader_calls) == 0
@@ -1041,7 +1044,9 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
         reload_dataloaders_every_n_epochs=n,
         max_epochs=3,
     )
-    trainer.fit(model)
+    result = trainer.fit(model)
+    assert result
+
     trainer.test()
 
     # verify the sequence
@@ -1099,6 +1104,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         max_epochs=3,
     )
     result = trainer.fit(model)
+    assert result
 
     trainer.test()
 
@@ -1140,6 +1146,7 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
         max_epochs=3,
     )
     result = trainer.fit(model, train_loader, val_loader)
+    assert result
 
     trainer.test(test_dataloaders=test_loader)
 
