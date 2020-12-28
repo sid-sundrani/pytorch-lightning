@@ -14,7 +14,6 @@
 """Test deprecated functionality which will be removed in v1.4.0"""
 import os
 from unittest import mock
-from unittest.mock import patch
 
 import pytest
 
