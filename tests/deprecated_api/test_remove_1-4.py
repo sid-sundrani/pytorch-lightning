@@ -17,10 +17,9 @@ from unittest import mock
 
 import pytest
 
+from pytorch_lightning import Trainer
 from tests.base.boring_model import BoringModel
 from tests.deprecated_api import _soft_unimport_module
-
-from pytorch_lightning import Trainer
 
 
 def test_v1_4_0_deprecated_imports():
